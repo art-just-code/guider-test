@@ -1,0 +1,52 @@
+---
+version: "3"
+
+services:
+  backend:
+    build:
+      context: backend
+      dockerfile: Dockerfile 
+    volumes:
+      - .:/web_django
+    ports:
+      - 8000:8000
+    healthcheck:
+      test: curl --fail -s http://localhost:8000/health
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 6
+    depends_on:
+      - db
+    networks:
+      - test-network
+
+  db:
+    image: postgres:16-alpine3.21
+    environment:
+      POSTGRES_DB: "exampledb"
+      POSTGRES_USER: exampleuser
+      POSTGRES_PASSWORD: examplepass
+    ports:
+      - "5432:5432"
+    restart: always
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data/pgdata
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4G
+    networks:
+      - test-network
+
+  frontend:
+    build: ./frontend
+    command: run 0.0.0.0
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - test-network
+
